@@ -17,7 +17,7 @@ let promptOnSave = true;
 let currentFile = url.parse(location.href, true).query.file as string || "~";
 let isEdited = false;
 let csvData: string[][] = [[]];
-let csvComments: string[] = [""];
+let csvComments: string[] = [];
 let csvHotSettings: Handsontable.DefaultSettings = {};
 let csvHotExtendedSettings = {
     maxWidth: 300,
@@ -198,14 +198,13 @@ function saveFileSilent() {
     });
 
     csvStringify.on("finish", () => {
-        const content = [
-            csvComments.map((el) => "#" + el).join("\n"),
-            "#hot " + JSON.stringify(csvHotSettings),
-            "#hotx " + JSON.stringify(csvHotExtendedSettings),
-            data.join("")].join("\n");
+        const content = csvComments.length > 0 ? [csvComments.map((el) => "#" + el).join("\n")] : [];
+        content.push("#hot " + JSON.stringify(csvHotSettings));
+        content.push("#hotx " + JSON.stringify(csvHotExtendedSettings));
+        content.push(data.join(""));
 
         isEdited = false;
-        fs.writeFile(currentFile, content, (err) => {
+        fs.writeFile(currentFile, content.join("\n"), (err) => {
             if (err) {
                 return console.log(err);
             } else {
@@ -268,7 +267,7 @@ function readFile() {
             isEdited = false;
 
             csvData = [];
-            csvComments = [""];
+            csvComments = [];
 
             data.trimRight().split("\n").forEach((el) => {
                 if (el[0] === "#") {
