@@ -46,7 +46,8 @@ let mainConfig = {
 let rendererConfig = {
     entry: {
         index: './src/renderer/index.ts',
-        editor: './src/renderer/editor.ts'
+        editor: './src/renderer/editor.ts',
+        pref: './src/renderer/pref.ts'
     },
     target: 'electron-renderer',
     output: {

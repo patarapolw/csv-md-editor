@@ -111,6 +111,14 @@ app.on("ready", () => {
                     click() { mainWindow.webContents.send("on-menu-toggle-header"); }
                 }
             ]
+        },
+        {
+            label: "Settings",
+            submenu: [
+                { label: "Preferences", click() {
+                    mainWindow.webContents.send("on-menu-pref");
+                } }
+            ]
         }
     ];
 

@@ -23,3 +23,10 @@ Executables can be downloaded from <https://github.com/patarapolw/csv-md-editor/
 - Open two terminals and navigate to the project folder,
     - `yarn run dev` to start development server
     - `yarn start` to start Electron app
+
+## Screenshots
+
+![](/screenshots/browser0.png)
+![](/screenshots/browser1.png)
+![](/screenshots/editor0.png)
+![](/screenshots/settings0.png)

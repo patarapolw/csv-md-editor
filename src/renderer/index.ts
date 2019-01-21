@@ -16,6 +16,9 @@ const { dialog, Menu } = remote;
 let promptOnSave = true;
 let currentFile = url.parse(location.href, true).query.file as string || "~";
 let isEdited = false;
+let editorWindow: BrowserWindow = null;
+let prefWindow: BrowserWindow = null;
+
 let csvData: string[][] = [[]];
 let csvComments: string[] = [];
 let csvHotSettings: Handsontable.DefaultSettings = {};
@@ -23,9 +26,14 @@ let csvHotExtendedSettings = {
     maxWidth: 300,
     maxHeight: 150
 };
-let editorWindow: BrowserWindow = null;
 
 const defaultHotSettings: Handsontable.DefaultSettings = {
+    colWidths: 100
+};
+
+setMaxDimensions(csvHotExtendedSettings.maxWidth, csvHotExtendedSettings.maxHeight);
+
+const hot = new Handsontable(document.getElementById("app"), {
     rowHeaders: true,
     colHeaders: true,
     // minSpareCols: 1,
@@ -34,7 +42,20 @@ const defaultHotSettings: Handsontable.DefaultSettings = {
     manualRowResize: true,
     manualColumnMove: true,
     manualRowMove: true,
-    colWidths: 100,
+    startRows: 5,
+    startCols: 5,
+    renderer: markdownRenderer,
+    afterChange(changes, source) {
+        if (source === "loadData") {
+            isEdited = false;
+            return;
+        }
+        isEdited = true;
+        setTitle();
+        if (hot.getDataAtRow(0).every((el) => el !== null)) {
+            menuItemToggleHeader.enabled = true;
+        }
+    },
     contextMenu: {
         callback(key, options) {
             switch (key) {
@@ -68,25 +89,6 @@ const defaultHotSettings: Handsontable.DefaultSettings = {
             redo: {},
             sep6: "---------",
             alignment: {}
-        }
-    }
-};
-
-setMaxDimensions(csvHotExtendedSettings.maxWidth, csvHotExtendedSettings.maxHeight);
-
-const hot = new Handsontable(document.getElementById("app"), {
-    startRows: 5,
-    startCols: 5,
-    renderer: markdownRenderer,
-    afterChange(changes, source) {
-        if (source === "loadData") {
-            isEdited = false;
-            return;
-        }
-        isEdited = true;
-        setTitle();
-        if (hot.getDataAtRow(0).every((el) => el !== null)) {
-            menuItemToggleHeader.enabled = true;
         }
     }
 });
@@ -157,6 +159,28 @@ const menuItemToggleHeader = Menu.getApplicationMenu().getMenuItemById("toggle-h
 
 ipcRenderer.on("on-menu-toggle-header", () => {
     menuItemToggleHeader.checked ? setColHeaders() : removeColHeaders();
+});
+
+ipcRenderer.on("on-menu-pref", () => {
+    prefWindow = new remote.BrowserWindow({
+        parent: remote.getCurrentWindow(),
+        modal: true
+    });
+    prefWindow.loadURL(`file://${__dirname}/pref.html`);
+
+    prefWindow.webContents.on("did-finish-load", () => {
+        prefWindow.webContents.send("pref-content", {
+            hot: csvHotSettings,
+            hotx: csvHotExtendedSettings
+        });
+    });
+
+    ipcRenderer.on("pref-closed", (_event: any, msg: any) => {
+        csvHotSettings = msg.hot;
+        csvHotExtendedSettings = msg.hotx;
+
+        updateSettings();
+    });
 });
 
 if (currentFile !== "~") {

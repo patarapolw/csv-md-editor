@@ -25,6 +25,7 @@
     "webpack-cli": "^3.2.1"
   },
   "dependencies": {
+    "bootstrap-css-only": "^4.2.1",
     "csv-parse": "^4.3.0",
     "csv-stringify": "^5.2.0",
     "electron-is-running-in-asar": "^1.0.0",
