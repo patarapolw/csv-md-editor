@@ -1,0 +1,18 @@
+* {
+    font-size: 16px;
+}
+
+#editor {
+    width: 100%;
+    height: calc(100% - 2.5em);
+}
+
+#buttonArea {
+    margin: 1em;
+    position: absolute;
+    right: 0;
+}
+
+button {
+    height: 1.5em;
+}

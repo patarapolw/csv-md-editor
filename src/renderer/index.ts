@@ -1,11 +1,11 @@
 import Handsontable from "handsontable";
-import { ipcRenderer, remote } from "electron";
+import { ipcRenderer, remote, BrowserWindow } from "electron";
 import fs from "fs";
 import toastr from "toastr";
 import url from "url";
 import CsvParse from "csv-parse";
 import CsvStringify from "csv-stringify";
-import markdownRenderer from "./hot/markdown";
+import markdownRenderer from "./hot/renderer";
 
 import "handsontable/dist/handsontable.full.min.css";
 import "toastr/build/toastr.min.css";
@@ -23,6 +23,7 @@ let csvHotExtendedSettings = {
     maxWidth: 300,
     maxHeight: 150
 };
+let editorWindow: BrowserWindow = null;
 
 const defaultHotSettings: Handsontable.DefaultSettings = {
     rowHeaders: true,
@@ -34,7 +35,41 @@ const defaultHotSettings: Handsontable.DefaultSettings = {
     manualColumnMove: true,
     manualRowMove: true,
     colWidths: 100,
-    contextMenu: true
+    contextMenu: {
+        callback(key, options) {
+            switch (key) {
+                case "editor":
+                    const coord = (options as any)[0];
+                    openEditor(coord.start.row, coord.start.col);
+                    break;
+            }
+        },
+        items: {
+            editor: {
+                name: "Open in editor"
+            },
+            sep1: "---------",
+            cut: {},
+            copy: {},
+            // paste: {
+            //     name: "Paste"
+            // },
+            sep2: "---------",
+            row_above: {},
+            row_below: {},
+            sep3: "---------",
+            col_left: {},
+            col_right: {},
+            sep4: "---------",
+            remove_row: {},
+            remove_col: {},
+            sep5: "---------",
+            undo: {},
+            redo: {},
+            sep6: "---------",
+            alignment: {}
+        }
+    }
 };
 
 setMaxDimensions(csvHotExtendedSettings.maxWidth, csvHotExtendedSettings.maxHeight);
@@ -80,6 +115,8 @@ csvParser.on("end", () => {
     } else {
         hot.loadData(csvData);
     }
+
+    updateColHeaderMenu();
 });
 
 const csvStringify = CsvStringify();
@@ -317,6 +354,7 @@ function setColHeaders() {
     csvHotSettings.colHeaders = header;
     csvHotSettings.data = data.splice(1);
 
+    isEdited = true;
     updateSettings();
 }
 
@@ -327,6 +365,7 @@ function removeColHeaders() {
     csvHotSettings.colHeaders = true;
     csvHotSettings.data = [header, ...data];
 
+    isEdited = true;
     updateSettings();
 }
 
@@ -345,4 +384,32 @@ function updateSettings() {
             }
         }
     }, false);
+}
+
+function openEditor(row: number, col: number) {
+    editorWindow = new remote.BrowserWindow({
+        parent: remote.getCurrentWindow(),
+        modal: true
+    });
+    editorWindow.loadURL(`file://${__dirname}/editor.html`);
+
+    editorWindow.webContents.on("did-finish-load", () => {
+        editorWindow.webContents.send("editor-content", hot.getData(
+            row, col,
+            row, col)[0]);
+    });
+
+    ipcRenderer.on("editor-closed", (_event: any, message: string) => {
+        hot.setDataAtCell(row, col, message);
+    });
+}
+
+function updateColHeaderMenu() {
+    if (Array.isArray(csvHotSettings.colHeaders) || hot.getDataAtRow(0).every((el) => el !== null)) {
+        menuItemToggleHeader.enabled = true;
+
+        if (Array.isArray(csvHotSettings.colHeaders)) {
+            menuItemToggleHeader.checked = true;
+        }
+    }
 }
