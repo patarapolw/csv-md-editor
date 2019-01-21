@@ -11,7 +11,7 @@ import "handsontable/dist/handsontable.full.min.css";
 import "toastr/build/toastr.min.css";
 import "./index.css";
 
-const { dialog } = remote;
+const { dialog, Menu } = remote;
 
 let promptOnSave = true;
 let currentFile = url.parse(location.href, true).query.file as string || "~";
@@ -21,21 +21,20 @@ let csvComments: string[] = [""];
 let csvHotSettings: Handsontable.DefaultSettings = {};
 let csvHotExtendedSettings = {
     maxWidth: 300,
-    maxHeight: 150,
-    colHeadersOn: false
+    maxHeight: 150
 };
 
 const defaultHotSettings: Handsontable.DefaultSettings = {
     rowHeaders: true,
     colHeaders: true,
-    minSpareCols: 1,
+    // minSpareCols: 1,
     minSpareRows: 1,
     manualColumnResize: true,
     manualRowResize: true,
     manualColumnMove: true,
     manualRowMove: true,
     colWidths: 100,
-    contextMenu: true,
+    contextMenu: true
 };
 
 setMaxDimensions(csvHotExtendedSettings.maxWidth, csvHotExtendedSettings.maxHeight);
@@ -43,6 +42,7 @@ setMaxDimensions(csvHotExtendedSettings.maxWidth, csvHotExtendedSettings.maxHeig
 const hot = new Handsontable(document.getElementById("app"), {
     startRows: 5,
     startCols: 5,
+    renderer: markdownRenderer,
     afterChange(changes, source) {
         if (source === "loadData") {
             isEdited = false;
@@ -50,8 +50,12 @@ const hot = new Handsontable(document.getElementById("app"), {
         }
         isEdited = true;
         setTitle();
+        if (hot.getDataAtRow(0).every((el) => el !== null)) {
+            menuItemToggleHeader.enabled = true;
+        }
     }
 });
+(window as any).hot = hot;
 
 updateSettings();
 
@@ -71,28 +75,32 @@ csvParser.on("error", (err) => {
 });
 
 csvParser.on("end", () => {
-    hot.loadData(csvData);
+    if (Array.isArray(csvHotSettings.colHeaders)) {
+        hot.loadData(csvData.splice(1));
+    } else {
+        hot.loadData(csvData);
+    }
 });
 
 const csvStringify = CsvStringify();
 
 toastr.options = {
-    "closeButton": true,
-    "debug": false,
-    "newestOnTop": false,
-    "progressBar": false,
-    "positionClass": "toast-bottom-center",
-    "preventDuplicates": false,
-    "onclick": null,
-    "showDuration": 300,
-    "hideDuration": 1000,
-    "timeOut": 5000,
-    "extendedTimeOut": 1000,
-    "showEasing": "swing",
-    "hideEasing": "linear",
-    "showMethod": "fadeIn",
-    "hideMethod": "fadeOut"
-}
+    closeButton: true,
+    debug: false,
+    newestOnTop: false,
+    progressBar: false,
+    positionClass: "toast-bottom-center",
+    preventDuplicates: false,
+    onclick: null,
+    showDuration: 300,
+    hideDuration: 1000,
+    timeOut: 5000,
+    extendedTimeOut: 1000,
+    showEasing: "swing",
+    hideEasing: "linear",
+    showMethod: "fadeIn",
+    hideMethod: "fadeOut"
+};
 
 ipcRenderer.on("on-app-closing", () => {
     saveBeforeFunction(() => {
@@ -100,20 +108,23 @@ ipcRenderer.on("on-app-closing", () => {
     });
 });
 
+ipcRenderer.on("on-menu-open", () => {
+    openFile();
+});
+
+ipcRenderer.on("on-menu-save", () => {
+    saveFile();
+});
+
+const menuItemToggleHeader = Menu.getApplicationMenu().getMenuItemById("toggle-header");
+
+ipcRenderer.on("on-menu-toggle-header", () => {
+    menuItemToggleHeader.checked ? setColHeaders() : removeColHeaders();
+});
+
 if (currentFile !== "~") {
     readFile();
 }
-
-document.addEventListener("keydown", (e) => {
-    if (e.metaKey || e.ctrlKey) {
-        if (e.key === "s") {
-            e.preventDefault();
-            saveFile();
-        } else if (e.key === "o") {
-            openFile();
-        }
-    }
-});
 
 function saveBeforeFunction(fn: () => void) {
     if (isEdited) {
@@ -121,15 +132,15 @@ function saveBeforeFunction(fn: () => void) {
             type: "question",
             message: "Do you want to save first?",
             buttons: ["Yes", "No", "Cancel"],
-            defaultId: 0,
+            defaultId: 0
         }, (response) => {
             if (response === 0) {
-                saveFile()
+                saveFile();
                 fn();
             } else if (response === 1) {
                 fn();
             }
-        })
+        });
     } else {
         fn();
     }
@@ -150,7 +161,7 @@ function saveFile(quitAfterSaving = false) {
                     defaultPath: currentFile === "~" ? "untitled" : currentFile,
                     filters: [{
                         name: "CSV files",
-                        extensions: ["csv"],
+                        extensions: ["csv"]
                     }]
                 });
 
@@ -173,16 +184,18 @@ function saveFile(quitAfterSaving = false) {
 function saveFileSilent() {
     const data: string[] = [];
 
+    delete csvHotSettings.data;
+
     csvStringify.on("readable", () => {
         let row;
         while (row = csvStringify.read()) {
             data.push(row);
         }
-    })
+    });
 
     csvStringify.on("error", (err) => {
         console.error(err.message);
-    })
+    });
 
     csvStringify.on("finish", () => {
         const content = [
@@ -197,7 +210,7 @@ function saveFileSilent() {
                 return console.log(err);
             } else {
                 setTitle(currentFile);
-                toastr["success"]("Saved!");
+                toastr.success("Saved!");
             }
         });
     });
@@ -233,7 +246,7 @@ function openFile() {
         defaultPath: "~",
         filters: [{
             name: "CSV files",
-            extensions: ["csv"],
+            extensions: ["csv"]
         }]
     });
 
@@ -249,7 +262,7 @@ function readFile() {
         if (err) {
             dialog.showMessageBox({
                 type: "error",
-                message: "An error ocurred reading the file :" + err.message,
+                message: "An error ocurred reading the file :" + err.message
             });
         } else {
             isEdited = false;
@@ -258,7 +271,7 @@ function readFile() {
             csvComments = [""];
 
             data.trimRight().split("\n").forEach((el) => {
-                if (el[0] == "#") {
+                if (el[0] === "#") {
                     if (el.startsWith("#hot ")) {
                         csvHotSettings = JSON.parse(el.replace("#hot ", ""));
                     } else if (el.startsWith("#hotx ")) {
@@ -269,16 +282,12 @@ function readFile() {
                 } else {
                     csvParser.write(el + "\n");
                 }
-            })
+            });
 
             csvParser.end();
 
             setTitle(currentFile);
             updateSettings();
-
-            if (csvHotExtendedSettings.colHeadersOn) {
-                setColHeaders();
-            }
         }
     });
 }
@@ -304,10 +313,20 @@ function getData() {
 
 function setColHeaders() {
     const data = hot.getData();
-    const header = data.splice(0, 1);
+    const header = data[0];
 
     csvHotSettings.colHeaders = header;
-    csvHotSettings.data = data;
+    csvHotSettings.data = data.splice(1);
+
+    updateSettings();
+}
+
+function removeColHeaders() {
+    const data = hot.getData();
+    const header = hot.getColHeader() as any[];
+
+    csvHotSettings.colHeaders = true;
+    csvHotSettings.data = [header, ...data];
 
     updateSettings();
 }
@@ -316,7 +335,6 @@ function updateSettings() {
     hot.updateSettings({
         ...defaultHotSettings,
         ...csvHotSettings,
-        renderer: markdownRenderer,
         modifyColWidth(width) {
             if (width > csvHotExtendedSettings.maxWidth) {
                 return csvHotExtendedSettings.maxWidth;
@@ -326,6 +344,6 @@ function updateSettings() {
             if (height > csvHotExtendedSettings.maxHeight) {
                 return csvHotExtendedSettings.maxHeight;
             }
-        },
-    }, false)
+        }
+    }, false);
 }

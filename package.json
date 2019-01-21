@@ -1,6 +1,6 @@
 {
   "name": "csv-md-editor",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha1",
   "description": "An enhanced CSV editor on Electron",
   "main": "./dist/main.bundle.js",
   "author": "Pacharapol Withayasakpunt",
@@ -19,6 +19,7 @@
     "sass-loader": "^7.1.0",
     "style-loader": "^0.23.1",
     "ts-loader": "^5.3.3",
+    "tslint": "^5.12.1",
     "typescript": "^3.2.4",
     "webpack": "^4.28.4",
     "webpack-cli": "^3.2.1"
