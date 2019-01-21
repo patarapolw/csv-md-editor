@@ -1,6 +1,6 @@
 {
   "name": "csv-md-editor",
-  "version": "1.0.0-beta2",
+  "version": "1.0.0-beta1",
   "description": "An enhanced CSV editor on Electron",
   "main": "./dist/main.bundle.js",
   "author": "Pacharapol Withayasakpunt",
