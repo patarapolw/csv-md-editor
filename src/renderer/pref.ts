@@ -26,7 +26,7 @@ ipcRenderer.on("pref-content", (e: any, _msg: any) => {
 
 saveButton.onclick = () => {
     msg.hot.colWidths = checkValue(defaultWidthEl.value, msg.hot.colWidths, 100, 500);
-    msg.hotx.maxWidth = checkValue(maxWidthEl.value, msg.hotx.maxWidth, 100, 500);
+    msg.hotx.maxWidth = checkValue(maxWidthEl.value, msg.hotx.maxWidth, 200, 1000);
     msg.hotx.maxHeight = checkValue(maxHeightEl.value, msg.hotx.maxHeight, 50, 500);
 
     remote.getCurrentWindow().getParentWindow().webContents.send("pref-closed", msg);

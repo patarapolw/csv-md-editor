@@ -56,6 +56,24 @@ const hot = new Handsontable(document.getElementById("app"), {
             menuItemToggleHeader.enabled = true;
         }
     },
+    afterColumnResize(colNumber, colSize) {
+        if (!Array.isArray(csvHotSettings.colWidths)) {
+            csvHotSettings.colWidths = Array.from({length: hot.countCols()}).map((_, i) => {
+                return hot.getColWidth(i);
+            });
+        } else {
+            csvHotSettings.colWidths[colNumber] = colSize;
+        }
+    },
+    afterRowResize(rowNumber, rowSize) {
+        if (!Array.isArray(csvHotSettings.rowHeights)) {
+            csvHotSettings.rowHeights = Array.from({length: hot.countRows()}).map((_, i) => {
+                return hot.getRowHeight(i);
+            });
+        } else {
+            csvHotSettings.rowHeights[rowNumber] = rowSize;
+        }
+    },
     contextMenu: {
         callback(key, options) {
             switch (key) {
@@ -229,7 +247,7 @@ function saveFile(quitAfterSaving = false) {
                 if (file !== undefined) {
                     currentFile = file;
                     promptOnSave = !checked;
-                    saveFileSilent();
+                    writeFile();
 
                     if (quitAfterSaving) {
                         ipcRenderer.send("quitter");
@@ -238,11 +256,11 @@ function saveFile(quitAfterSaving = false) {
             }
         });
     } else {
-        saveFileSilent();
+        writeFile();
     }
 }
 
-function saveFileSilent() {
+function writeFile() {
     const data: string[] = [];
 
     delete csvHotSettings.data;
@@ -408,6 +426,8 @@ function updateSettings() {
             }
         }
     }, false);
+
+    setMaxDimensions(csvHotExtendedSettings.maxWidth, csvHotExtendedSettings.maxHeight);
 }
 
 function openEditor(row: number, col: number) {

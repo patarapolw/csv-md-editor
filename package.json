@@ -31,6 +31,7 @@
     "electron-is-running-in-asar": "^1.0.0",
     "handsontable": "^6.2.2",
     "markdown-it": "^8.4.2",
+    "markdown-it-imsize": "^2.0.1",
     "toastr": "^2.1.4"
   },
   "scripts": {

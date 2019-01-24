@@ -1,7 +1,12 @@
 import Handsontable from "handsontable";
 import MarkdownIt from "markdown-it";
+import MarkdownItImsize from "markdown-it-imsize";
 
-const md = MarkdownIt();
+const md = MarkdownIt({
+    html: true,
+    linkify: true
+}).use(MarkdownItImsize);
+
 const mdMarkerRegex = /^@md\W/;
 const mdMarkerFullLineRegex = /^@md[^\n]*\n/;
 
