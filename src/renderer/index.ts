@@ -114,33 +114,6 @@ const hot = new Handsontable(document.getElementById("app"), {
 
 updateSettings();
 
-const csvParser = CsvParse({
-    comment: "#"
-});
-
-csvParser.on("readable", () => {
-    let record;
-    while (record = csvParser.read()) {
-        csvData.push(record);
-    }
-});
-
-csvParser.on("error", (err) => {
-    console.error(err.message);
-});
-
-csvParser.on("end", () => {
-    if (Array.isArray(csvHotSettings.colHeaders)) {
-        hot.loadData(csvData.splice(1));
-    } else {
-        hot.loadData(csvData);
-    }
-
-    updateColHeaderMenu();
-});
-
-const csvStringify = CsvStringify();
-
 toastr.options = {
     closeButton: true,
     debug: false,
@@ -257,10 +230,15 @@ function saveFile(quitAfterSaving = false) {
         });
     } else {
         writeFile();
+
+        if (quitAfterSaving) {
+            ipcRenderer.send("quitter");
+        }
     }
 }
 
 function writeFile() {
+    const csvStringify = CsvStringify();
     const data: string[] = [];
 
     delete csvHotSettings.data;
@@ -335,6 +313,31 @@ function openFile() {
 }
 
 function readFile() {
+    const csvParser = CsvParse({
+        comment: "#"
+    });
+
+    csvParser.on("readable", () => {
+        let record;
+        while (record = csvParser.read()) {
+            csvData.push(record);
+        }
+    });
+
+    csvParser.on("error", (err) => {
+        console.error(err.message);
+    });
+
+    csvParser.on("end", () => {
+        if (Array.isArray(csvHotSettings.colHeaders)) {
+            hot.loadData(csvData.splice(1));
+        } else {
+            hot.loadData(csvData);
+        }
+
+        updateColHeaderMenu();
+    });
+
     promptOnSave = true;
     fs.readFile(currentFile, "utf-8", (err, data) => {
         if (err) {
@@ -381,8 +384,8 @@ function setMaxDimensions(width: number, height: number) {
 }
 
 function getData() {
-    const header = (csvHotSettings as any).colHeaders;
-    if (header) {
+    const header = csvHotSettings.colHeaders;
+    if (Array.isArray(header)) {
         return [header, ...hot.getData()];
     } else {
         return hot.getData();
