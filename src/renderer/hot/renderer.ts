@@ -13,7 +13,7 @@ const mdMarkerFullLineRegex = /^@md[^\n]*\n/;
 function markdownRenderer(
         instance: any, td: HTMLTableDataCellElement, row: any, col: any, prop: any, value: any, cellProperties: any) {
     const escaped = Handsontable.helper.stringify(value);
-    const cellWrapperDiv = document.createElement("div");
+    const cellWrapperDiv = document.createElement("pre");
     cellWrapperDiv.className = "cell-wrapper";
 
     if (mdMarkerRegex.test(escaped)) {
